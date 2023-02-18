@@ -2,12 +2,10 @@ title: "Julian Tölle"
 baseURL: "https://apricote.de/"
 languageCode: "en-us"
 
+theme: PaperMod
+
 author:
   name: Julian Tölle
-
-module:
-  imports:
-    - path: "github.com/adityatelange/hugo-PaperMod"
 
 params:
   DateFormat: "2006-01-02"
