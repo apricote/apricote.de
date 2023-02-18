@@ -16,9 +16,9 @@ params:
     enabled: true
     title: "Julian Tölle"
     subtitle: |
-      Cloud Infrastructure / Kubernetes / DevOps
+      #### Cloud Infrastructure / Kubernetes / DevOps
 
-      Working at [Hetzner Cloud](https://hetzner.com/cloud) on [Open Source Integrations](https://github.com/hetznercloud)
+      [Open Source Integrations](https://github.com/hetznercloud) @ [Hetzner Cloud](https://hetzner.com/cloud)
 
     imageUrl: ./profile.jpg
     imageWidth: 240
