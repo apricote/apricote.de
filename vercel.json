@@ -1,0 +1,19 @@
+{
+  "build": {
+    "env": {
+      "HUGO_VERSION": "0.110.0"
+    }
+  },
+  "buildCommand": {},
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "interest-cohort=()"
+        }
+      ]
+    }
+  ]
+}
