@@ -1,0 +1,31 @@
+{{ $jobs := $.Site.Data.resume.work }} {{ range $jobs }}
+
+<div style="margin-bottom: 2em">
+  <div style="font-weight: 200">
+    {{ if not (isset . "endDate")}} {{ .startDate }} - Current {{ else }} {{
+    .startDate }} - {{ .endDate }} {{end}}
+  </div>
+
+  <div>
+    <span style="font-weight: 600">{{ .position }}</span>
+    at
+    <a href="{{.website}}" target="_blank">{{ .name }}</a>
+  </div>
+
+  <div style="font-size: 0.8em">
+    {{ range .keywords}}
+    <code>{{.}}</code>
+    {{ end}}
+  </div>
+
+  <div>{{.summary | markdownify}}</div>
+
+  {{ if (isset . "highlights") }}
+  <ul>
+    {{ range .highlights }}
+    <li>{{.}}</li>
+    {{end}}
+  </ul>
+  {{end}}
+</div>
+{{ end }}

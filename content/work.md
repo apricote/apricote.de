@@ -1,0 +1,5 @@
+---
+title: "Work Experiences"
+---
+
+{{< work >}}

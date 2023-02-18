@@ -1,0 +1,61 @@
+title: "Julian Tölle"
+baseURL: "https://apricote.de/"
+languageCode: "en-us"
+
+author:
+  name: Julian Tölle
+
+module:
+  imports:
+    - path: "github.com/adityatelange/hugo-PaperMod"
+
+params:
+  DateFormat: "2006-01-02"
+
+  keywords: ["cv", "resume", "julian tölle", "personal site"]
+
+  profileMode:
+    enabled: true
+    title: "Julian Tölle"
+    subtitle: |
+      Cloud Infrastructure / Kubernetes / DevOps
+
+      Working at [Hetzner Cloud](https://hetzner.com/cloud) on [Open Source Integrations](https://github.com/hetznercloud)
+
+    imageUrl: ./profile.jpg
+    imageWidth: 240
+    imageHeight: 240
+    imageTitle: Headshot of myself
+
+    buttons:
+      - name: "About Me"
+        url: "about-me"
+      - name: "Favorite Music"
+        url: listory
+
+  socialIcons:
+    - name: github
+      url: "https://github.com/apricote"
+    - name: linkedin
+      url: "https://www.linkedin.com/in/julian-toelle/"
+    - name: xing
+      url: "https://www.xing.com/profile/Julian_Toelle3/cv"
+    - name: twitch
+      url: "https://twitch.tv/apricote4"
+    - name: mastodon
+      url: "https://hachyderm.io/@apricote"
+
+menu:
+  main:
+    - identifier: about
+      name: About Me
+      url: about-me
+    - identifier: work
+      name: Work
+      url: work
+    - identifier: projects
+      name: Projects
+      url: projects
+    - identifier: listory
+      name: Favorite Music
+      url: listory
