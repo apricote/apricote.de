@@ -16,13 +16,24 @@
       try {
         date = new Date(element.innerText);
       } catch (err) {
-        console.error("Element does have a proper date");
+        console.error("Element does not have a proper date");
         return;
       }
 
       const diffMs = date - new Date();
-      const daysSince = diffMs / 1000 / 60 / 60 / 24;
-      const formatted = formatter.format(daysSince, "days");
+      const hoursSince = diffMs / 1000 / 60 / 60;
+      const daysSince = hoursSince / 24;
+
+      let formatted = "";
+
+      if (daysSince > 1) {
+        formatted = formatter.format(daysSince, "days");
+      } else if (hoursSince > 1) {
+        formatted = formatter.format(daysSince, "hours");
+      } else {
+        formatted = "Just Now!";
+      }
+
       const capitalized =
         formatted.charAt(0).toUpperCase() + formatted.slice(1);
 
