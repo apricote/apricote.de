@@ -1,0 +1,31 @@
+{{ $listoryApi := getenv "HUGO_LISTORY_HOST" }}{{ $listoryToken := getenv
+"HUGO_LISTORY_TOKEN" }} {{ $res := getJSON
+"https://listory.apricote.de/api/v1/reports/top-albums?timePreset=last_30_days"
+(dict "Authorization" (printf "Bearer %s" $listoryToken) ) }}
+
+<ol>
+  {{ range first 5 $res.items }}
+  <li style="margin-bottom: 1em">
+    <div style="display: flex">
+      <div style="width: 80%">
+        <span style="font-weight: 600;">{{ .album.name | title }}</span> - {{ range .album.artists }}<span style="font-size: 0.9em; padding-right: 0.2em"
+          >{{.name}}</code
+        >{{ end }}
+      </div>
+      <div style="width: 20%; text-align: right">
+        {{ .count }}<img
+          src="/listen.svg"
+          style="
+            height: 1em;
+            display: inline;
+            margin: 0 0;
+            padding-left: 0.2em;
+            vertical-align: middle;
+          "
+        />
+      </div>
+    </div>
+    <div style="font-size: 0.9em"></div>
+  </li>
+  {{ end }}
+</ol>

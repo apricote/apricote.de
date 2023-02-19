@@ -1,0 +1,32 @@
+<script async>
+  // When document is ready, find relative-date elements and use relative date format
+  document.addEventListener("readystatechange", (event) => {
+    if (event.target.readyState !== "complete") {
+      return;
+    }
+
+    const formatter = new Intl.RelativeTimeFormat("en-US", {
+      numeric: "auto",
+    });
+
+    const elements = document.querySelectorAll(".relative-date");
+
+    elements.forEach((element) => {
+      let date;
+      try {
+        date = new Date(element.innerText);
+      } catch (err) {
+        console.error("Element does have a proper date");
+        return;
+      }
+
+      const diffMs = date - new Date();
+      const daysSince = diffMs / 1000 / 60 / 60 / 24;
+      const formatted = formatter.format(daysSince, "days");
+      const capitalized =
+        formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+      element.innerText = capitalized;
+    });
+  });
+</script>
