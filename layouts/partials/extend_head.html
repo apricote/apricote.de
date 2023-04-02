@@ -20,16 +20,16 @@
         return;
       }
 
-      const diffMs = date - new Date();
+      const diffMs = new Date() - date;
       const hoursSince = diffMs / 1000 / 60 / 60;
       const daysSince = hoursSince / 24;
 
       let formatted = "";
 
       if (daysSince > 1) {
-        formatted = formatter.format(daysSince, "days");
+        formatted = formatter.format(-Math.round(daysSince), "days");
       } else if (hoursSince > 1) {
-        formatted = formatter.format(daysSince, "hours");
+        formatted = formatter.format(-Math.round(hoursSince), "hours");
       } else {
         formatted = "Just Now!";
       }
