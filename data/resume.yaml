@@ -38,6 +38,7 @@ skills:
   - name: CI/CD
     level: advanced
     keywords:
+      - GitHub Actions
       - GitLab CI
       - Jenkins
 
@@ -56,8 +57,8 @@ skills:
     level: advanced
     keywords:
       - AWS
-      - OpenStack
       - Hetzner Cloud
+      - OpenStack
 
   - name: Databases
     level: advanced
@@ -80,10 +81,38 @@ work:
     keywords:
       - Kubernetes
       - Terraform
-      - Ansible
       - Go
+      - Ansible
       - Python
-    summary: ""
+      - Developer Experience
+      - Rest API
+      - GitHub Actions
+    summary: |
+      Hetzner Cloud is a prominent European cloud provider offering virtual
+      machines and other cloud infrastructure. As a member of the Integrations
+      team, I am responsible for maintaining and enhancing our suite of Open
+      Source Integrations, including the Go SDK, Python SDK, CLI, Terraform
+      Provider, Ansible Collection, Kubernetes Cloud Controller Manager, and
+      csi-driver.
+
+      Collaborating closely with other teams at Hetzner Cloud, I contribute to
+      the development and integration of new features into our Open Source
+      Integrations. This entails working closely with my co-workers to provide
+      early feedback for new APIs, to make sure that they are consistent and
+      easy to understand for our customers. In addition to supporting new
+      features, I address customer issues, providing timely resolutions and
+      implementing fixes and enhancements. I also interact with our community to
+      get their changes merged and implemented.
+
+      Overall, my role at Hetzner Cloud allows me to combine my passion for Open
+      Source technologies with my expertise in cloud infrastructure. By
+      continuously enhancing our Open Source Integrations, I help in empowering
+      customers to leverage the full potential of Hetzner Cloud's cloud
+      infrastructure solutions.
+
+    highlights:
+      - Driving initiatives to keep our API easy to understand
+
   - name: teuto.net Netzdienste GmbH
     position: Cloud Engineer
     website: https://teuto.net/
