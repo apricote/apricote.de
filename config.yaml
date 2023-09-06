@@ -48,6 +48,9 @@ menu:
     - identifier: about
       name: About Me
       url: about-me
+    - identifier: posts
+      name: Posts
+      url: posts
     - identifier: work
       name: Work
       url: work
