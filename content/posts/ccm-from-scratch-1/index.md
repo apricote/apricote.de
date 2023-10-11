@@ -567,8 +567,13 @@ resource "null_resource" "k3sup_worker" {
 
 #### Kubernetes Addons
 
-Nice! We now have a working Kubernetes Cluster, so let's deploy our CNI solution Cilium to it. We are going to use the Cilium Helm Chart & and the `helm` Provider for Terraform to install it:
+Nice! We now have a working Kubernetes Cluster, so let's deploy our CNI solution Cilium to it. We are going to use the Cilium Helm Chart & and the `helm` Provider for Terraform to install it.
 
+As with the hcloud provider, we need to configure Helm and tell it how to connect to the cluster.
+
+`k3sup` wrote the config to a local file, and luckily the provider supports reading this _but_ we need to make sure that the file is actually written / the Cluster is initialized _before_ we can use it.
+Terraform has the `depends_on` meta-argument, but this does not work on `providers`.
+Instead we will create an intermediary `local_sensitive_file` resource that has `depends_on` specified, and use its output `filename` in the Helm provider config.
 
 ```terraform
 terraform {
@@ -581,9 +586,6 @@ terraform {
   }
 }
 
-# As with the hcloud provider, we need to configure Helm and tell it how to connect to the cluster.
-# k3sup wrote the config to a local file, and luckily the provider supports reading this BUT we need to make sure that the file is actually written / the Cluster is initialized before we can use it. Terraform has the `depends_on` we can use the local terraform provider to read it:
-# TODO, finalize description above, maybe make actual text?
 data "local_sensitive_file" "kubeconfig" {
   # Kubeconfig is only written after control-plane is initialized finished
   depends_on = [null_resource.control]
@@ -593,14 +595,184 @@ data "local_sensitive_file" "kubeconfig" {
 
 provider "helm" {
   kubernetes {
-    # And now we pass the 
+    # And now we pass the filename from the data source
     config_path = data.local_sensitive_file.kubeconfig.filename
   }
 }
-
 ```
 
+With the provider configured, we can install Cilium:
 
+```terraform
+resource "helm_release" "cilium" {
+  name       = "cilium"
+  chart      = "cilium"
+  repository = "https://helm.cilium.io"
+  namespace  = "kube-system"
+  version    = "1.13.1"
+
+  set {
+    name  = "ipam.mode"
+    value = "kubernetes"
+  }
+}
+```
+
+For our own purposes, we will need to create one more resource: a `Secret` containing the Hetzner Cloud API Token. We will use this later in the `cloud-controller-manager` to access the API.
+
+We will use the `kubernetes` provider this time, which is configured similar to the `helm` provider:
+
+```terraform
+provider "kubernetes" {
+  config_path = data.local_sensitive_file.kubeconfig.filename
+}
+
+resource "kubernetes_secret_v1" "hcloud_token" {
+  metadata {
+    name      = "hcloud"
+    namespace = "kube-system"
+  }
+
+  data = {
+    token = var.hcloud_token
+    network = hcloud_network.cluster.id
+  }
+}
+```
+
+#### Applying the configuration
+
+All the resources we will need (for now) exist, so let's apply the configuration:
+
+```shell
+$ terraform init
+$ terraform apply
+// TODO Output
+```
+
+### Kubernetes Manifests
+
+To deploy our application, we need to write some YAML.
+I will not spend too much time explaining this, as its not the focus of the tutorial.
+We will need a `Deployment` and some RBAC rules to enable access to the Kubernetes API.
+
+```yaml
+# deploy.yaml
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ccm-from-scratch
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccm-from-scratch
+  template:
+    metadata:
+      labels:
+        app: ccm-from-scratch
+    spec:
+      hostNetwork: true
+      serviceAccountName: cloud-controller-manager
+      tolerations:
+        - effect: NoSchedule
+          key: node.cloudprovider.kubernetes.io/uninitialized
+          operator: Exists
+
+      containers:
+        - name: ccm-from-scratch
+          # This points to my DockerHub repository, you can use your own
+          image: apricote/ccm-from-scratch:latest
+          args: []
+          env:
+            - name: HCLOUD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: hcloud
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cloud-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # This binds us to the all-powerful cluster-admin role. In a real-world
+  # scenario, you would want to restrict this to a custom ClusterRole that only
+  # has access to the required paths.
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: cloud-controller-manager
+    namespace: kube-system
+```
+
+### Skaffold
+
+[Skaffold](https://skaffold.dev/) is a tool to automate the deployment of applications to Kubernetes.
+It can watch the local filesystem for changes and automatically re-deploy the application with an updated image.
+
+
+#### Config
+
+Skaffold requires a configuration file. We need to specify which image to build & how our application should be deployed.
+
+For Image building we will use [ko](https://ko.build/).
+It produces very small images very quickly, and we do not need to write an _artisanal_ Dockerfile.
+The `ko` builder by default builds & containerizes the `main.go` in the project root.
+
+For deployment we use the `kubectl` deployer and point it at the `deploy.yaml` from the last section.
+
+```yaml
+# skaffold.yaml
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: ccm-from-scratch
+build:
+  artifacts:
+      # Must match the image you used in deploy.yaml
+    - image: apricote/ccm-from-scratch
+      ko: {}
+deploy:
+  kubectl:
+    manifests:
+      - deploy.yaml
+```
+
+TODO: SKAFFOLD_DEFAULT_REPO?
+
+#### Babies first deploy
+
+Lets try to deploy our application:
+
+```shell
+$ export KUBECONFIG=kubeconfig.yaml
+$ export SKAFFOLD_DEFAULT_REPO? TODO
+$ skaffold run
+... TODO Output
+```
+
+> If you are using Docker Hub the first deployment will probably fail, Docker Hub sets new images to "private" by default.
+> You need to configure an `ImagePullSecret` or make the image public in the Docker Hub settings.
+> Afterward you can retry the `skaffold run` step and it should work.
+
+If everything worked, you should now have a running `ccm-from-scratch` deployment in the `kube-system` namespace and `skaffold` should show some logs from the application.
+
+```shell
+$ kubectl get pods -n kube-system -l app=ccm-from-scratch
+TODO output
+```
 
 ## (Part 3) Controller: Node
 
