@@ -56,15 +56,15 @@ skills:
   - name: Cloud
     level: advanced
     keywords:
-      - AWS
       - Hetzner Cloud
+      - AWS
       - OpenStack
 
   - name: Databases
     level: advanced
     keywords:
-      - Redis
       - PostgreSQL
+      - Redis
       - MySQL
       - etcd
 
@@ -344,7 +344,7 @@ projects:
 
   - name: cluster-api-provider-openstack
     summary: |
-      I am a reviewer of the project and actively contribute new features.
+      I was a reviewer of the project and actively contributed new features.
     startDate: 2022-03
     endDate: 2022-09
     url: https://sigs.k8s.io/cluster-api-provider-openstack
