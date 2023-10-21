@@ -1,6 +1,6 @@
 {{ $listoryApi := getenv "HUGO_LISTORY_HOST" }}{{ $listoryToken := getenv
 "HUGO_LISTORY_TOKEN" }} {{ $res := getJSON
-"https://listory.apricote.de/api/v1/reports/top-albums?timePreset=last_30_days"
+"https://listory.apricote.de/api/v1/reports/top-albums?timePreset=last_180_days"
 (dict "Authorization" (printf "Bearer %s" $listoryToken) ) }}
 
 <ol>
@@ -9,7 +9,7 @@
     <div style="display: flex">
       <div style="width: 80%">
         <span style="font-weight: 600;">{{ .album.name | title }}</span> - {{ range .album.artists }}<span style="font-size: 0.9em; padding-right: 0.2em"
-          >{{.name}}</code
+          >{{.name}}</span
         >{{ end }}
       </div>
       <div style="width: 20%; text-align: right">

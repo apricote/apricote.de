@@ -1,6 +1,6 @@
 {{ $listoryApi := getenv "HUGO_LISTORY_HOST" }}{{ $listoryToken := getenv
 "HUGO_LISTORY_TOKEN" }} {{ $res := getJSON
-"https://listory.apricote.de/api/v1/reports/top-genres?timePreset=last_30_days"
+"https://listory.apricote.de/api/v1/reports/top-genres?timePreset=last_180_days"
 (dict "Authorization" (printf "Bearer %s" $listoryToken) ) }}
 
 <ol>
