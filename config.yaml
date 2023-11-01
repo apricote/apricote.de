@@ -20,7 +20,7 @@ params:
 
       [Open Source Integrations](https://github.com/hetznercloud) @ [Hetzner Cloud](https://hetzner.com/cloud)
 
-    imageUrl: ./profile.jpg
+    imageUrl: ./profile.png
     imageWidth: 240
     imageHeight: 240
     imageTitle: Headshot of myself
