@@ -3,9 +3,9 @@ author: "Julian Tölle"
 title: "Part 1: Setting up the Boilerplate"
 date: "2023-09-06"
 description: |
-  Goal: Get a compilable binary running k/cloud-provider with no controllers yet
+  Goal: Get a compilable binary running k/cloud-provider with no actual functionality yet.
 summary: |
-  Goal: Get a compilable binary running k/cloud-provider with no controllers yet
+  Get a compilable binary running k/cloud-provider with no actual functionality yet.
 
 tags: ["kubernetes"]
 ShowToc: true

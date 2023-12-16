@@ -19,15 +19,15 @@ cover:
 ![dall-e with prompt 'ship stearing towards clouds, a captain behind the steering wheel, cartoon, wide angle'](./cover.webp)
 
 {{< collapse summary="Disclaimers" openByDefault=true >}}
-##### Employer
+##### Work
 
 I [work for Hetzner Cloud]({{< ref "/work" >}}) and this project was done during working hours as part of the _Lab Days_.
-During Lab Days, employees can choose to work on topics unrelated to their work.
+During Lab Days, employees can spend time on projects unrelated to their work.
 
 ##### Production Readiness
 
 The code written in this series is not ready for production.
-You should not actually use the code I provide for your Kubernetes Cluster on Hetzner Cloud.
+You should not actually use the code provided here for your Kubernetes Cluster on Hetzner Cloud.
 Please use the official [`hcloud-cloud-controller-manager`](https://github.com/hetznercloud/hcloud-cloud-controller-manager) instead.
 {{</ collapse >}}
 

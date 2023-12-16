@@ -1,11 +1,11 @@
 ---
 author: "Julian Tölle"
-title: "Part 2: Development Environment with Terraform, k3s and Skaffold"
+title: "Part 2: Development Environment with Terraform, k3s and Skaffold [SideQuest]"
 date: "2023-09-06"
 description: |
   [SideQuest] Goal: Get an environment to deploy our binary to, to test any controllers we implement
 summary: |
-  [SideQuest] Goal: Get an environment to deploy our binary to, to test any controllers we implement
+  Goal: Get an environment to deploy our binary to, to test any controllers we implement
 tags: ["kubernetes"]
 ShowToc: true
 ShowReadingTime: true
