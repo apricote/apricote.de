@@ -9,3 +9,4 @@ hugo_stats.json
 
 # Credentials
 .env
+.vercel
