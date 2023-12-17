@@ -447,6 +447,11 @@ spec:
                 secretKeyRef:
                   key: token
                   name: hcloud
+            - name: HCLOUD_NETWORK_ID
+              valueFrom:
+                secretKeyRef:
+                  key: network
+                  name: hcloud
 
 ---
 kind: ServiceAccount

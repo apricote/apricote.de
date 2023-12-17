@@ -43,9 +43,9 @@ package ccm
 // ccm/instances_v2.go
 
 import (
-  "context"
-  
-  cloudprovider "k8s.io/cloud-provider"
+	"context"
+	
+	cloudprovider "k8s.io/cloud-provider"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -75,18 +75,23 @@ Before we can make any requests to our Cloud Provider API, we need to read some 
 As mentioned in Part 1, we are going to use [hcloud-go](https://github.com/hetznercloud/hcloud-go) here, but you should use a client for your API.
 Because we also need the client in other controllers, we will create it in `ccm.NewCloudProvider()` and save it to the `CloudProvider` struct.
 
-```go
+We also need to parse and the save the ID of the network that our nodes use to communicate with each other. We will use this later to figure out the internal IP of the node.
+
+```go {hl_lines=[13,14,"18-35"]}
 package ccm
 // ccm/cloud.go
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 )
 
 type CloudProvider struct {
-	client *hcloud.Client
+	client    *hcloud.Client
+	networkID int64
 }
 
 func NewCloudProvider(_ *config.CompletedConfig) cloudprovider.Interface {
@@ -95,29 +100,36 @@ func NewCloudProvider(_ *config.CompletedConfig) cloudprovider.Interface {
 	token := os.Getenv("HCLOUD_TOKEN")
 	
 	client := hcloud.NewClient(
-    hcloud.WithToken(token),
+	  hcloud.WithToken(token),
 	  // Setting a custom user agent
 	  hcloud.WithApplication("ccm-from-scratch", ""),
-  )
+	)
 	
+	// Also from Part 2
+	networkID, err := strconv.ParseInt(os.Getenv("HCLOUD_NETWORK_ID"), 10, 64)
+	if err != nil {
+		// TODO: Return error?
+		panic(fmt.Errorf("failed to parse HCLOUD_NETWORK_ID: %w", err))
+	}
 	
-  return CloudProvider{client: client}
+	return CloudProvider{client: client, networkID: networkID}
 }
 ```
 
 We can now initialize the `InstancesV2` struct and pass the client to it:
 
-```go
+```go {hl_lines=[5,6,11]}
 package ccm
-
 // ccm/instances_v2.go
+
 type InstancesV2 struct {
-	client *hcloud.Client
+	client    *hcloud.Client
+	networkID int64
 }
 
 // ccm/cloud.go
 func (c CloudProvider) InstancesV2() (cloudprovider.InstancesV2, bool) {
-  return InstancesV2{client: c.client}, true
+	return InstancesV2{client: c.client, networkID: c.networkID}, true
 }
 ```
 
@@ -163,7 +175,7 @@ func (i *InstancesV2) InstanceMetadata(ctx context.Context, node *corev1.Node) (
 	  if err != nil {
 		  return nil, err
 	  }
-  } else {
+	} else {
 	  // If the Node was previously initialized, it should have a ProviderID set.
 	  // We can parse it to get the ID and then use that to get the server from the API.
 	  providerID, found := strings.CutPrefix(node.Spec.ProviderID, fmt.Sprintf("%s://", providerName))
@@ -177,31 +189,307 @@ func (i *InstancesV2) InstanceMetadata(ctx context.Context, node *corev1.Node) (
 	  }
 	  
 	  server, _, err = i.client.Server.GetByID(ctx, id)
+	  if err != nil {
+		  return nil, err
+	  }
+	}
+	
+	if server == nil {
+	  return nil, errors.New("server not found")
+	}
+	
+	return nil, nil
+}
+```
 
-	  // TODO error handling
+Now that we have the server, we can start filling out the `InstanceMetadata` struct. It looks like this:
 
-  }
-  
-  // TODO metadata return, possibly in another code block
-  
-  return nil, nil
+```go
+package cloudprovider
+
+// Source: TODO
+type InstanceMetadata struct {
+	ProviderID string
+	InstanceType string
+	NodeAddresses []corev1.NodeAddress
+	Zone string
+	Region string
+}
+```
+
+We already discussed `ProviderID`, the values for `InstanceType` is also quite easy, we are going to use the Server Type from the Hetzner Cloud API). `Zone` and `Region` are a bit more open ended, and I recommend you read the docs for their respective labels ([Region][label-region], [Zone][label-zone]). In short, the Zone is smaller and Regions span multiple zones. For the Hetzner Cloud API, we are going to use the Network Zone (eg. `eu-central`) as the Region, and the Location (eg. `fsn1`) as the Zone. For your own API, you should evaluate what makes the most sense based on the availability guarantees of your Zones/Regions/DCs/... and the needs of your customers.
+
+The `NodeAddresses` is a bit more complicated. We need to list all the addresses of the server along with their respective type (`NodeHostName`, `NodeExternalIP`, `NodeInternalIP`). We will put this into a separate function to keep the `InstanceMetadata` method clean.
+
+```go
+package ccm
+
+// ccm/instances_v2.go
+func getNodeAddresses(server *hcloud.Server, networkID int64) []corev1.NodeAddress {
+	// No matter what, we always have the hostname, which equals
+	// the name of the server in Hetzner Cloud default images.
+	addresses := []corev1.NodeAddress{
+		{
+			Type:    corev1.NodeHostName,
+			Address: server.Name,
+		},
+	}
+
+	// If the server has a public IPv4 address, we add it to the list.
+	// Disabling the public IPv4 is possible in Hetzner Cloud API, so
+	// we need to check for it.
+	if !server.PublicNet.IPv4.IsUnspecified() {
+		addresses = append(addresses, corev1.NodeAddress{
+			Type:    corev1.NodeExternalIP,
+			Address: server.PublicNet.IPv4.IP.String(),
+		})
+	}
+	
+	// For simplicity, we only support IPv4 here, but you can easily
+	// extend this for IPv6 or Dualstack clusters. 
+
+	// The server might be attached to multiple Networks, so we
+	// need to iterate through them to find the one we are
+	// looking for, based on the configured network ID.
+	for _, privNet := range server.PrivateNet {
+		if privNet.Network.ID != networkID {
+			continue
+		}
+
+		if !privNet.IP.IsUnspecified() {
+			addresses = append(addresses, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: privNet.IP.String(),
+			})
+		}
+	}
+
+	return addresses
+}
+
+func (i *InstancesV2) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
+	var server *hcloud.Server 
+	// Skipping the previous code for brevity
+
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    fmt.Sprintf("%s://%d", providerName, server.ID),
+		InstanceType:  server.ServerType.Name,
+		NodeAddresses: getNodeAddresses(server, i.networkID),
+		Zone:          server.Datacenter.Location.Name,
+		Region:        string(server.Datacenter.Location.NetworkZone),
+	}, nil
+}
+```
+
+### Refactoring
+
+Now that we have the basic functionality in, I would like to extract the code to parse the `ProviderID` and get the node into their own functions. This will make them reusable for the other two methods in the Interface.
+
+Lets start with `getProviderID`:
+
+```go {hl_lines=["4-15","30-33"]}
+package ccm
+// ccm/instances_v2.go
+
+func getProviderID(node *v1.Node) (int64, error) {
+	providerID, found := strings.CutPrefix(node.Spec.ProviderID, fmt.Sprintf("%s://", providerName))
+	if !found {
+		return 0, fmt.Errorf("ProviderID does not follow expected format: %s", node.Spec.ProviderID)
+	}
+
+	id, err := strconv.ParseInt(providerID, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse ProviderID to integer: %w", err)
+	}
+	return id, nil
+}
+
+
+func (i *InstancesV2) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
+	var server *hcloud.Server
+	var err error
+
+	if node.Spec.ProviderID == "" {
+		// If no ProviderID was set yet, we use the name to get the right server
+		// Luckily this is pretty easy with hcloud-go:
+		server, _, err = i.client.Server.GetByName(ctx, node.Name)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		id, err := getProviderID(node)
+		if err != nil {
+			return nil, err
+		}
+
+		server, _, err = i.client.Server.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if server == nil {
+		return nil, errors.New("server not found")
+	}
+
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    fmt.Sprintf("%s://%d", providerName, server.ID),
+		InstanceType:  server.ServerType.Name,
+		NodeAddresses: getNodeAddresses(server, i.networkID),
+		Zone:          server.Datacenter.Location.Name,
+		Region:        string(server.Datacenter.Location.NetworkZone),
+	}, nil
+}
+```
+
+Next we move out the code to get the server into `getServerForNode`:
+
+```go {hl_lines=["4-32","35-38"]}
+package ccm
+// ccm/instances_v2.go
+
+func (i InstancesV2) getServerForNode(ctx context.Context, node *v1.Node) (*hcloud.Server, error) {
+	var server *hcloud.Server
+	var err error
+
+	if node.Spec.ProviderID == "" {
+		// If no ProviderID was set yet, we use the name to get the right server
+		// Luckily this is pretty easy with hcloud-go:
+		server, _, err = i.client.Server.GetByName(ctx, node.Name)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		id, err := getProviderID(node)
+		if err != nil {
+			return nil, err
+		}
+
+		server, _, err = i.client.Server.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if server == nil {
+		return nil, errors.New("server not found")
+	}
+	
+	return server, nil
+}
+
+func (i *InstancesV2) InstanceMetadata(ctx context.Context, node *corev1.Node) (*cloudprovider.InstanceMetadata, error) {
+	server, err := i.getServerForNode(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cloudprovider.InstanceMetadata{
+		ProviderID:    fmt.Sprintf("%s://%d", providerName, server.ID),
+		InstanceType:  server.ServerType.Name,
+		NodeAddresses: getNodeAddresses(server, i.networkID),
+		Zone:          server.Datacenter.Location.Name,
+		Region:        string(server.Datacenter.Location.NetworkZone),
+	}, nil
+}
+```
+
+Now that is looking better! One last thing I want to do is to replace the inline error (`errors.New("server not found")`) with a predefined error, which makes implementing the next method way easier.
+
+```go {hl_lines=[5,32]}
+package ccm
+// ccm/instances_v2.go
+
+var (
+	errServerNotFound = errors.New("server not found")
+)
+
+func (i InstancesV2) getServerForNode(ctx context.Context, node *v1.Node) (*hcloud.Server, error) {
+	var server *hcloud.Server
+	var err error
+
+	if node.Spec.ProviderID == "" {
+		// If no ProviderID was set yet, we use the name to get the right server
+		// Luckily this is pretty easy with hcloud-go:
+		server, _, err = i.client.Server.GetByName(ctx, node.Name)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		id, err := getProviderID(node)
+		if err != nil {
+			return nil, err
+		}
+
+		server, _, err = i.client.Server.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if server == nil {
+		return nil, errServerNotFound
+	}
+
+	return server, nil
 }
 ```
 
 
-
-
 ### InstanceExists
 
-`InstanceExists` is being called by the _NodeLifecycle_ controller. Based on the return value the `Node` will be deleted. It is probably the easiest out of the three in this interface, as we only need to return `true` if a server matching the `Node` exists in the API, and `false` otherwise. So let's implement it first.
+`InstanceExists` is being called by the _NodeLifecycle_ controller. Based on the return value the `Node` will be deleted. It is probably the easiest out of the three in this interface, as we only need to return `true` if a server matching the `Node` exists in the API, and `false` otherwise.
 
+```go
+package ccm
+// ccm/instances_v2.go
 
-### Refactoring
+func (i InstancesV2) InstanceExists(ctx context.Context, node *corev1.Node) (bool, error) {
+	// We get the server using the method from the previous section
+	_, err := i.getServerForNode(ctx, node)
+	if err != nil {
+		// If we get back our predefined error, we know that
+		// the server does not exist and return false
+		if errors.Is(err, errServerNotFound) {
+			return false, nil
+		}
 
+		return false, err
+	}
+
+	// If we get here, the server exists and we return true.
+	return true, nil
+}
+```
+
+And thats it. Pretty simple.
 
 ### InstanceShutdown
 
+`InstaceShutdown` is also being called by the _NodeLifecyle_ controller. Based on the return value, the `Node` will get the taint [`node.cloudprovider.kubernetes.io/shutdown`][taint-shutdown], the taint is removed if we return true. Similar to `InstanceExists`, this is pretty easy to implement. For the Hetzner Cloud API, we just need to check if the Server is in status `"off"`.
 
+```go
+package ccm
+// ccm/instances_v2.go
 
+func (i *InstancesV2) InstanceShutdown(ctx context.Context, node *corev1.Node) (bool, error) {
+	server, err := i.getServerForNode(ctx, node)
+	if err != nil {
+		return false, err
+	}
+
+	return server.Status == hcloud.ServerStatusOff, nil
+}
+```
+
+[taint-shutdown]: https://kubernetes.io/docs/reference/labels-annotations-taints/#node-cloudprovider-kubernetes-io-shutdown
 
 ### Testing (in prod!)
+
+And thats it for the `InstancesV2` interface. We can now start our project again and test if it works as expected:
+
+TODO: Test init&metadata
+
+TODO: Test Shutdown
+
+TODO: Test delete

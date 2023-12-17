@@ -66,46 +66,43 @@ package main
 // [Imports]
 
 // The main function is called as the entrypoint of our Go binary.
-func main() {
-    // k8s.io/cloud-provider has an elaborate way to read the configuration from flags.
-    // I found this very tedious to debug, but at least we do not have to do this ourselves.
-    ccmOptions, err := options.NewCloudControllerManagerOptions()
-    if err != nil {
-        klog.Fatalf("unable to initialize command options: %v", err)
-    }
-    
-    // Can be used to add custom flags to the binary, we dont need this.
-    fss := cliflag.NamedFlagSets{}
-    
-    // This initializes the CLI command. The arguments are interesting, so lets take a closer look:
-    command := app.NewCloudControllerManagerCommand(
-        // The options we initialized earlier.
-        ccmOptions,
-        // This is a custom function that needs to return a [cloudprovider.Interface],
-        // we will get to this soon.
-        cloudInitializer,
-        // This defines which controllers are started, if wanted,
-        // one can add additional controller loops heroe
-        app.DefaultInitFuncConstructors,
-        // Kubernetes v1.28 renamed the controllers to more sensible names, this
-        // map makes it so that old command-line arguments (--controllers) still work
-        names.CCMControllerAliases(),
-        // Our optional additional flags
-        fss,
-        // A [<-chan struct{}] that can be used to shut down the CCM on demand,
-        // we do not need this. 
-        wait.NeverStop,
-    )
-    // Actually run the command to completion.
-    code := cli.Run(command)
-    os.Exit(code)
+func main() { 
+	// k8s.io/cloud-provider has an elaborate way to read the configuration from flags.
+	// I found this very tedious to debug, but at least we do not have to do this ourselves.
+	ccmOptions, err := options.NewCloudControllerManagerOptions()
+	if err != nil {
+		klog.Fatalf("unable to initialize command options: %v", err)
+	}
+	
+	// Can be used to add custom flags to the binary, we don't need this.
+	fss := cliflag.NamedFlagSets{}
+	
+	// This initializes the CLI command. The arguments are interesting, so lets take a closer look:
+	command := app.NewCloudControllerManagerCommand(
+		// The options we initialized earlier.
+		ccmOptions,
+		// This is a custom function that needs to return a [cloudprovider.Interface],
+		// we will get to this soon.
+		cloudInitializer,
+		// This defines which controllers are started, if wanted,
+		// one can add additional controller loops heroe
+		app.DefaultInitFuncConstructors,
+		// Kubernetes v1.28 renamed the controllers to more sensible names, this
+		// map makes it so that old command-line arguments (--controllers) still work
+		names.CCMControllerAliases(),
+		// Our optional additional flags
+		fss,
+		// A [<-chan struct{}] that can be used to shut down the CCM on demand,
+		// we do not need this. 
+		wait.NeverStop,
+	)
+	// Actually run the command to completion.
+	code := cli.Run(command)
+	os.Exit(code)
 }
 ```
 
 Now, this does not compile right now. We use the undefined `cloudInitalizer` method. The method signature we need to implement is `(*config.CompletedConfig) cloudprovider.Interface`. The sample code includes this method, but I found it overly complex for our small CCM, so we will implement it ourselves. Lets take a closer look at the interface we need to return in the next section.
-
-
-
 
 ### `cloudprovider.Interface`
 
@@ -155,6 +152,7 @@ func (c CloudProvider) Routes()       (cloudprovider.Routes,       bool) { retur
 Now that we have a struct implementing the interface, lets create our `cloudInitializer` method. We will actually do this in the same file as our struct:
 
 ```go
+package ccm
 // ccm/cloud.go
 
 // Just create a new struct for now, we will add some more stuff to this later.
@@ -165,9 +163,10 @@ func NewCloudProvider(_ *config.CompletedConfig) cloudprovider.Interface {
 
 And now we can pass this method in our `main()`:
 
-```go
+```go {hl_lines=[7,15]}
 package main
 // main.go
+
 import (
 	// Existing imports
 	
@@ -176,19 +175,15 @@ import (
 
 func main() {
 	// [ other code ]
-    // This initializes the CLI command. The arguments are interesting, so lets take a closer look:
+	
 	command := app.NewCloudControllerManagerCommand(
-        ccmOptions,
-		
-		// This was previously "cloudInitializer"
-        ccm.NewCloudProvider,
-		//
-		
-        app.DefaultInitFuncConstructors,
-        names.CCMControllerAliases(),
-        fss,
-        wait.NeverStop,
-    )
+		ccmOptions,
+		ccm.NewCloudProvider,
+		app.DefaultInitFuncConstructors,
+		names.CCMControllerAliases(),
+		fss,
+		wait.NeverStop, 
+	)
 }
 ```
 
