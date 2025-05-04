@@ -28,8 +28,6 @@ params:
     buttons:
       - name: "About Me"
         url: "about-me"
-      - name: "Favorite Music"
-        url: listory
 
   socialIcons:
     - name: github
@@ -54,6 +52,3 @@ menu:
     - identifier: projects
       name: Projects
       url: projects
-    - identifier: listory
-      name: Favorite Music
-      url: listory
