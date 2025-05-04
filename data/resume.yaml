@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json
 basics:
   name: Julian Tölle
-  label: Infrastructure & Backend
+  label: Kubernetes & Cloud Infrastructure
   image: https://www.gravatar.com/avatar/bd55c8a01a6dd038f86c8e9fd60674b5?s=800
   email: julian.toelle97@gmail.com
   location:
@@ -29,11 +29,8 @@ skills:
       - Operators
       - GitOps
 
-  - name: Node.js
-    level: expert
-    keywords:
-      - Typescript
-      - Nest.js
+  - name: Go
+    level: advanced
 
   - name: CI/CD
     level: advanced
@@ -41,6 +38,13 @@ skills:
       - GitHub Actions
       - GitLab CI
       - Jenkins
+
+  - name: Cloud
+    level: advanced
+    keywords:
+      - Hetzner Cloud
+      - AWS
+      - OpenStack
 
   - name: Infrastructure as Code
     level: advanced
@@ -53,12 +57,11 @@ skills:
     keywords:
       - REST APIs
 
-  - name: Cloud
+  - name: Node.js
     level: advanced
     keywords:
-      - Hetzner Cloud
-      - AWS
-      - OpenStack
+      - Typescript
+      - Nest.js
 
   - name: Databases
     level: advanced
@@ -68,14 +71,9 @@ skills:
       - MySQL
       - etcd
 
-  - name: Go
-    level: intermediate
-    keywords:
-      - kubebuilder
-
 work:
   - name: Hetzner Cloud GmbH
-    position: Software Developer Open Source Integrations
+    position: Team Lead Open Source Integrations
     website: https://hetzner.com/cloud
     startDate: "2022-11"
     keywords:
@@ -315,18 +313,23 @@ education:
       - LK Physik
 
 projects:
-  - name: Listory
-    summary: |
-      Self-hosted app to track all your Spotify listens and show interesting
-      insights that I develop to fill my own needs.
-    startDate: 2020-01
-    url: https://github.com/apricote/Listory
+  - name: releaser-pleaser
+    summary:
+      Automate versioning and changelog management for GitHub and GitLab projects.
+    startDate: 2024-07
+    url: https://apricote.github.io/releaser-pleaser/
     type: application
     keywords:
-      - Node.js
-      - Nest.js
-      - Helm
-      - React
+      - Go
+
+  - name: hcloud-upload-image
+    summary:
+      CLI and Go Library to upload OS images to Hetzner Cloud.
+    startDate: 2024-04
+    url: https://apricote.github.io/hcloud-upload-image/
+    type: application
+    keywords:
+      - Go
 
   - name: Streaming on Twitch
     summary: |
@@ -341,6 +344,21 @@ projects:
       - Node.js
       - AV production
       - Public Talking
+
+
+  - name: Listory
+    summary: |
+      Self-hosted app to track all your Spotify listens and show interesting
+      insights that I develop to fill my own needs.
+    startDate: 2020-01
+    endDate: 2023-10
+    url: https://github.com/apricote/Listory
+    type: application
+    keywords:
+      - Node.js
+      - Nest.js
+      - Helm
+      - React
 
   - name: cluster-api-provider-openstack
     summary: |
