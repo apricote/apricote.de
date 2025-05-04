@@ -4,9 +4,6 @@ languageCode: "en-us"
 
 theme: PaperMod
 
-author:
-  name: Julian Tölle
-
 params:
   DateFormat: "2006-01-02"
 
