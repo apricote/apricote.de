@@ -5,6 +5,8 @@ languageCode: "en-us"
 theme: PaperMod
 
 params:
+  author: Julian Tölle
+
   DateFormat: "2006-01-02"
 
   keywords: ["cv", "resume", "julian tölle", "personal site"]
@@ -38,14 +40,25 @@ params:
     - name: mastodon
       url: "https://hachyderm.io/@apricote"
 
+  assets:
+    # Use hugo native highlighter for Nord theme
+    disableHLJS: true
+
 menu:
   main:
     - identifier: about
       name: About Me
       url: about-me
+    - identifier: posts
+      name: Blog
+      url: posts
     - identifier: work
       name: Work
       url: work
     - identifier: projects
       name: Projects
       url: projects
+
+markup:
+  highlight:
+    style: nord
